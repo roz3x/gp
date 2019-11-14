@@ -71,7 +71,7 @@ func main() {
 		}()
 
 		go simulate(w)
-		//go circle()
+		go circle()
 		var (
 			buttonDown bool
 			sz         size.Event

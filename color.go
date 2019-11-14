@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"math"
+	"math/rand"
 	"time"
 )
 
@@ -15,15 +16,17 @@ var (
 
 func circle() {
 	thita := 0.
+	rndpt := 0
 	for {
-		x := int(math.Sin(thita)*radx) + midptx
-		y := int(math.Cos(thita)*rady) + midpty
+		rndpt = int(rand.Int31n(1))
+		x := int(math.Sin(thita)*radx) + midptx + rndpt
+		y := int(math.Cos(thita)*rady) + midpty + rndpt
 		thita += 0.001
 		// fmt.Printf("%v %v \n", x, y)
 		shared.mu.Lock()
 		shared.mouseEvents = append(shared.mouseEvents, image.Point{x, y})
 		shared.mu.Unlock()
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(time.Millisecond)
 	}
 }
 
