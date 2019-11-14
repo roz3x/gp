@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	clr "github.com/gerow/go-color"
+
 	"golang.org/x/exp/shiny/driver"
 	"golang.org/x/exp/shiny/screen"
 	"golang.org/x/mobile/event/lifecycle"
@@ -17,18 +19,19 @@ import (
 )
 
 const (
-	N = 200
+	//N is buffer size
+	N = 300
 
 	tickDuration = time.Second / 60
-	iterations = 20
-	dt         = 0.1
-	diff       = 0
-	visc       = 0
-	force      = 0.01
-	forcex  = 0.7
-	forcey  = 5
-	source     = 20
-	fade       = 0.89
+	iterations   = 20
+	dt           = 0.1
+	diff         = 0.001
+	visc         = 0.00
+	force        = 0.01
+	forcex       = 0
+	forcey       = 10
+	source       = 20
+	fade         = 0.89
 )
 
 const (
@@ -36,8 +39,7 @@ const (
 	play  = true
 )
 
- 
-var pauseChan = make(chan bool, 64)
+var pauseChan = make(chan bool, 100)
 
 type array [N + 2][N + 2]float32
 type uploadEvent struct{}
@@ -50,7 +52,6 @@ var shared = struct {
 }{
 	pix: make([]byte, 4*N*N),
 }
-
 
 func main() {
 	driver.Main(func(s screen.Screen) {
@@ -70,7 +71,7 @@ func main() {
 		}()
 
 		go simulate(w)
-
+		//go circle()
 		var (
 			buttonDown bool
 			sz         size.Event
@@ -116,8 +117,7 @@ func main() {
 				z := sz.Size()
 				x := int(e.X) * N / z.X
 				y := int(e.Y) * N / z.Y
-			 
-				 
+
 				if x < 0 || N <= x || y < 0 || N <= y {
 					break
 				}
@@ -157,6 +157,14 @@ func main() {
 	})
 }
 
+var (
+	_rgb  = clr.HSL{}
+	_rgb_ = clr.RGB{}
+	_r    = uint8(0x00)
+	_g    = uint8(0x00)
+	_b    = uint8(0x00)
+	t     = int(0)
+)
 
 func simulate(q screen.EventDeque) {
 	var (
@@ -196,7 +204,6 @@ func simulate(q screen.EventDeque) {
 		velStep(&u, &v, &uPrev, &vPrev)
 		densStep(&dens, &densPrev, &u, &v)
 
-		 
 		for i := range dens {
 			for j := range dens[i] {
 				dens[i][j] *= fade
@@ -214,15 +221,26 @@ func simulate(q screen.EventDeque) {
 				}
 				v := 255 - uint8(d)
 				p := (N*y + x) * 4
-				if v <  200 {
-					shared.pix[p+0] = 0 
-					shared.pix[p+1] = 0xff
-					shared.pix[p+2] = 0xff
-					shared.pix[p+3] = 0xff	
-				} else {
-					shared.pix[p+0] = 0 
+				// _rgb.H = float64(v) / 255
+				// _rgb_ = _rgb.ToRGB()
+				// shared.pix[p+0] = uint8(_rgb_.R * 255)
+				// shared.pix[p+1] = uint8(_rgb_.G * 255)
+				// shared.pix[p+2] = uint8(_rgb_.B * 255)
+				// shared.pix[p+3] = 0xff
+				_r += 2
+				_g += _r - 9
+				_b += _r + _b
+				t %= 100000
+				t++
+				if v < 200 {
+					shared.pix[p+0] = 0xff
 					shared.pix[p+1] = 0
-					shared.pix[p+2] = v
+					shared.pix[p+2] = _g
+					shared.pix[p+3] = 0xff
+				} else {
+					shared.pix[p+0] = 0
+					shared.pix[p+1] = 0
+					shared.pix[p+2] = 0xff
 					shared.pix[p+3] = 0xff
 				}
 			}
@@ -276,7 +294,7 @@ func setBnd(b int, x *array) {
 }
 
 func linSolve(b int, x, x0 *array, a, c float32) {
- 
+
 	if a == 0 && c == 1 {
 		for i := 1; i <= N; i++ {
 			for j := 1; j <= N; j++ {
